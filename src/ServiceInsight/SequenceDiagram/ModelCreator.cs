@@ -100,13 +100,8 @@ namespace ServiceInsight.SequenceDiagram
                 sendingHandler.Out = sendingHandler.Out.Concat(new[] { arrow }).OrderBy(a => a).ToList();
             }
 
-            ReOrderHandlers(firstOrderHandlers);
-        }
-
-        private void ReOrderHandlers(IList<Handler> orderedHandlers)
-        {
-            var start = orderedHandlers.Where(h => h.ID == ConversationStartHandlerName);
-            var orderedByHandledAt = orderedHandlers.Where(h => h.ID != ConversationStartHandlerName)
+            var start = firstOrderHandlers.Where(h => h.ID == ConversationStartHandlerName);
+            var orderedByHandledAt = firstOrderHandlers.Where(h => h.ID != ConversationStartHandlerName)
                                                     .OrderBy(h => h.HandledAt)
                                                     .ToList();
 
