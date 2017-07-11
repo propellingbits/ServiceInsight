@@ -32,7 +32,6 @@
         {
             this.commandLineArgParser = commandLineArgParser;
             this.settingProvider = settingProvider;
-            PageSize = 50; //NOTE: Do we need to change this?
 
             SearchCommand = Command.Create(this, Search, vm => vm.CanSearch);
             CancelSearchCommand = Command.Create(this, CancelSearch, vm => vm.CanCancelSearch);
@@ -52,22 +51,22 @@
 
         public void GoToFirstPage()
         {
-            Parent.RefreshMessages(SelectedEndpoint, 1, SearchQuery);
+            Parent.RefreshMessages(FirstLink, 1);
         }
 
         public void GoToPreviousPage()
         {
-            Parent.RefreshMessages(SelectedEndpoint, CurrentPage - 1, SearchQuery);
+            Parent.RefreshMessages(PrevLink, CurrentPage - 1);
         }
 
         public void GoToNextPage()
         {
-            Parent.RefreshMessages(SelectedEndpoint, CurrentPage + 1, SearchQuery);
+            Parent.RefreshMessages(NextLink, CurrentPage + 1);
         }
 
         public void GoToLastPage()
         {
-            Parent.RefreshMessages(SelectedEndpoint, PageCount, SearchQuery);
+            Parent.RefreshMessages(LastLink, PageCount);
         }
 
         public ICommand SearchCommand { get; }
@@ -91,22 +90,27 @@
         {
             SearchInProgress = true;
             AddRecentSearchEntry(SearchQuery);
-            Parent.RefreshMessages(SelectedEndpoint, 1, SearchQuery);
+            Parent.InitSearch(SelectedEndpoint, SearchQuery);
         }
 
         public void CancelSearch()
         {
             SearchQuery = null;
             SearchInProgress = false;
-            Parent.RefreshMessages(SelectedEndpoint, 1, SearchQuery);
+            Parent.InitSearch(SelectedEndpoint, SearchQuery);
         }
 
-        public void SetupPaging(PagedResult<StoredMessage> pagedResult)
+        public void SetupPaging(int currentPage, int totalCount, int pageSize, IList<StoredMessage> messages, string nextLink, string prevLink, string firstLink, string lastLink, string selfLink)
         {
-            Result = pagedResult.Result;
-            CurrentPage = pagedResult.TotalCount > 0 ? pagedResult.CurrentPage : 0;
-            TotalItemCount = pagedResult.TotalCount;
-
+            CurrentPage = currentPage;
+            TotalItemCount = totalCount;
+            Result = messages;
+            NextLink = nextLink;
+            PrevLink = prevLink;
+            FirstLink = firstLink;
+            LastLink = lastLink;
+            SelfLink = selfLink;
+            PageSize = pageSize;
             NotifyPropertiesChanged();
         }
 
@@ -122,10 +126,15 @@
 
         public void RefreshResult()
         {
-            Parent.RefreshMessages(SelectedEndpoint, CurrentPage, SearchQuery);
+            if (SelfLink != null)
+            {
+                Parent.RefreshMessages(SelfLink, CurrentPage);
+            }
+            else
+            {
+                Parent.InitSearch(SelectedEndpoint, SearchQuery);
+            }
         }
-
-        public bool CanGoToLastPage => CurrentPage < PageCount && !WorkInProgress;
 
         public bool CanCancelSearch => SearchInProgress;
 
@@ -135,7 +144,7 @@
         {
             get
             {
-                if (TotalItemCount == 0)
+                if (TotalItemCount == 0 || PageSize == 0)
                 {
                     return 0;
                 }
@@ -158,11 +167,13 @@
 
         public bool IsVisible { get; set; }
 
-        public bool CanGoToFirstPage => CurrentPage > 1 && !WorkInProgress;
+        public bool CanGoToFirstPage => FirstLink != null && !WorkInProgress;
 
-        public bool CanGoToPreviousPage => CurrentPage - 1 >= 1 && !WorkInProgress;
+        public bool CanGoToLastPage => LastLink != null && !WorkInProgress;
 
-        public bool CanGoToNextPage => CurrentPage + 1 <= PageCount && !WorkInProgress;
+        public bool CanGoToPreviousPage => PrevLink != null && !WorkInProgress;
+
+        public bool CanGoToNextPage => NextLink != null && !WorkInProgress;
 
         public IList<StoredMessage> Result { get; private set; }
 
@@ -170,7 +181,17 @@
 
         public int CurrentPage { get; private set; }
 
-        public int PageSize { get; }
+        public string NextLink { get; private set; }
+
+        public string PrevLink { get; private set; }
+
+        public string FirstLink { get; private set; }
+
+        public string LastLink { get; private set; }
+
+        public string SelfLink { get; private set; }
+
+        public int PageSize { get; private set; }
 
         public int TotalItemCount { get; private set; }
 

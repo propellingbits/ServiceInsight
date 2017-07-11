@@ -97,28 +97,49 @@
             clipboard.CopyTo(generalHeaderDisplay.HeaderContent);
         }
 
+        public void RefreshMessages(string link, int pageIndex)
+        {
+            using (workNotifier.NotifyOfWork("Loading messages..."))
+            {
+                var pagedResult = serviceControl.GetAuditMessages(link);
+                if (pagedResult == null)
+                {
+                    return;
+                }
+
+                pagedResult.CurrentPage = pageIndex;
+                TryRebindMessageList(pagedResult);
+
+                SearchBar.IsVisible = true;
+                SearchBar.SetupPaging(pagedResult.TotalCount > 0 ? pagedResult.CurrentPage : 0, pagedResult.TotalCount, pagedResult.PageSize, pagedResult.Result,
+                    pagedResult.NextLink,
+                    pagedResult.PrevLink,
+                    pagedResult.FirstLink,
+                    pagedResult.LastLink,
+                    link);
+            }
+        }
+
         public void RefreshMessages(string orderBy = null, bool ascending = false)
         {
-            var serviceControlExplorerItem = selectedExplorerItem as ServiceControlExplorerItem;
-            if (serviceControlExplorerItem != null)
-            {
-                RefreshMessages(searchQuery: SearchBar.SearchQuery,
-                                     endpoint: null,
-                                     orderBy: orderBy,
-                                     ascending: ascending);
-            }
-
             var endpointNode = selectedExplorerItem as AuditEndpointExplorerItem;
             if (endpointNode != null)
             {
-                RefreshMessages(searchQuery: SearchBar.SearchQuery,
+                InitSearch(searchQuery: SearchBar.SearchQuery,
                                      endpoint: endpointNode.Endpoint,
                                      orderBy: orderBy,
                                      ascending: ascending);
             }
+            else
+            {
+                InitSearch(searchQuery: SearchBar.SearchQuery,
+                    endpoint: null,
+                    orderBy: orderBy,
+                    ascending: ascending);
+            }
         }
 
-        public void RefreshMessages(Endpoint endpoint, int pageIndex = 1, string searchQuery = null, string orderBy = null, bool ascending = false)
+        public void InitSearch(Endpoint endpoint, string searchQuery = null, string orderBy = null, bool ascending = false)
         {
             using (workNotifier.NotifyOfWork($"Loading {(endpoint == null ? "all" : endpoint.Address)} messages..."))
             {
@@ -130,28 +151,11 @@
 
                 PagedResult<StoredMessage> pagedResult;
 
-                if (endpoint != null)
-                {
-                    pagedResult = serviceControl.GetAuditMessages(endpoint,
-                        pageIndex: pageIndex,
-                        searchQuery: searchQuery,
-                        orderBy: lastSortColumn,
-                        ascending: lastSortOrderAscending);
-                }
-                else if (!searchQuery.IsEmpty())
-                {
-                    pagedResult = serviceControl.Search(pageIndex: pageIndex,
-                        searchQuery: searchQuery,
-                        orderBy: lastSortColumn,
-                        ascending: lastSortOrderAscending);
-                }
-                else
-                {
-                    pagedResult = serviceControl.Search(pageIndex: pageIndex,
-                        searchQuery: null,
-                        orderBy: lastSortColumn,
-                        ascending: lastSortOrderAscending);
-                }
+                pagedResult = serviceControl.GetAuditMessages(
+                    endpoint,
+                    searchQuery,
+                    lastSortColumn,
+                    lastSortOrderAscending);
 
                 if (pagedResult == null)
                 {
@@ -161,12 +165,12 @@
                 TryRebindMessageList(pagedResult);
 
                 SearchBar.IsVisible = true;
-                SearchBar.SetupPaging(new PagedResult<StoredMessage>
-                {
-                    CurrentPage = pagedResult.CurrentPage,
-                    TotalCount = pagedResult.TotalCount,
-                    Result = pagedResult.Result,
-                });
+                SearchBar.SetupPaging(pagedResult.TotalCount > 0 ? pagedResult.CurrentPage : 0, pagedResult.TotalCount, pagedResult.PageSize, pagedResult.Result,
+                    pagedResult.NextLink,
+                    pagedResult.PrevLink,
+                    pagedResult.FirstLink,
+                    pagedResult.LastLink,
+                    null);
             }
         }
 
