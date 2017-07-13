@@ -56,7 +56,11 @@
 
         void SortData(ColumnBase column, ListSortDirection order)
         {
-            Model.RefreshMessages(column.Tag as string, order == ListSortDirection.Ascending);
+            var orderBy = column.Tag as string;
+            var ascending = order == ListSortDirection.Ascending;
+
+            Model.ChangeSorting(orderBy, ascending);
+            Model.RefreshMessages();
         }
 
         void Grid_OnCustomColumnDisplayText(object sender, CustomColumnDisplayTextEventArgs e)

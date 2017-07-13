@@ -34,8 +34,8 @@
         IWorkNotifier workNotifier;
         IServiceControl serviceControl;
         GeneralHeaderViewModel generalHeaderDisplay;
-        string lastSortColumn;
-        bool lastSortOrderAscending;
+        string sortColumn;
+        bool sortOrderAscending;
         IMessageListView view;
         ExplorerItem selectedExplorerItem;
 
@@ -97,11 +97,18 @@
             clipboard.CopyTo(generalHeaderDisplay.HeaderContent);
         }
 
-        public void RefreshMessages(string link, int pageIndex)
+        public void ChangeSorting(string orderBy, bool ascending)
+        {
+            sortColumn = orderBy;
+            sortOrderAscending = ascending;
+        }
+
+        public void NavigateToPage(string link, int pageIndex)
         {
             using (workNotifier.NotifyOfWork("Loading messages..."))
             {
                 var pagedResult = serviceControl.GetAuditMessages(link);
+
                 if (pagedResult == null)
                 {
                     return;
@@ -111,66 +118,37 @@
                 TryRebindMessageList(pagedResult);
 
                 SearchBar.IsVisible = true;
-                SearchBar.SetupPaging(pagedResult.TotalCount > 0 ? pagedResult.CurrentPage : 0, pagedResult.TotalCount, pagedResult.PageSize, pagedResult.Result,
-                    pagedResult.NextLink,
-                    pagedResult.PrevLink,
-                    pagedResult.FirstLink,
-                    pagedResult.LastLink,
-                    link);
+                SearchBar.SetupPaging(pagedResult, link);
             }
         }
 
-        public void RefreshMessages(string orderBy = null, bool ascending = false)
+        public void RefreshMessages()
         {
             var endpointNode = selectedExplorerItem as AuditEndpointExplorerItem;
-            if (endpointNode != null)
-            {
-                InitSearch(searchQuery: SearchBar.SearchQuery,
-                                     endpoint: endpointNode.Endpoint,
-                                     orderBy: orderBy,
-                                     ascending: ascending);
-            }
-            else
-            {
-                InitSearch(searchQuery: SearchBar.SearchQuery,
-                    endpoint: null,
-                    orderBy: orderBy,
-                    ascending: ascending);
-            }
+
+            Search(searchQuery: SearchBar.SearchQuery, endpoint: endpointNode?.Endpoint);
         }
 
-        public void InitSearch(Endpoint endpoint, string searchQuery = null, string orderBy = null, bool ascending = false)
+        public void Search(Endpoint endpoint, string searchQuery = null)
         {
             using (workNotifier.NotifyOfWork($"Loading {(endpoint == null ? "all" : endpoint.Address)} messages..."))
             {
-                if (orderBy != null)
-                {
-                    lastSortColumn = orderBy;
-                    lastSortOrderAscending = ascending;
-                }
-
-                PagedResult<StoredMessage> pagedResult;
-
-                pagedResult = serviceControl.GetAuditMessages(
+                var pagedResult = serviceControl.GetAuditMessages(
                     endpoint,
                     searchQuery,
-                    lastSortColumn,
-                    lastSortOrderAscending);
+                    sortColumn,
+                    sortOrderAscending);
 
                 if (pagedResult == null)
                 {
                     return;
                 }
 
+                pagedResult.CurrentPage = 1;
                 TryRebindMessageList(pagedResult);
 
                 SearchBar.IsVisible = true;
-                SearchBar.SetupPaging(pagedResult.TotalCount > 0 ? pagedResult.CurrentPage : 0, pagedResult.TotalCount, pagedResult.PageSize, pagedResult.Result,
-                    pagedResult.NextLink,
-                    pagedResult.PrevLink,
-                    pagedResult.FirstLink,
-                    pagedResult.LastLink,
-                    null);
+                SearchBar.SetupPaging(pagedResult, null);
             }
         }
 

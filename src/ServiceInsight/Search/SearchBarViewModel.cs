@@ -51,22 +51,22 @@
 
         public void GoToFirstPage()
         {
-            Parent.RefreshMessages(FirstLink, 1);
+            Parent.NavigateToPage(FirstLink, 1);
         }
 
         public void GoToPreviousPage()
         {
-            Parent.RefreshMessages(PrevLink, CurrentPage - 1);
+            Parent.NavigateToPage(PrevLink, CurrentPage - 1);
         }
 
         public void GoToNextPage()
         {
-            Parent.RefreshMessages(NextLink, CurrentPage + 1);
+            Parent.NavigateToPage(NextLink, CurrentPage + 1);
         }
 
         public void GoToLastPage()
         {
-            Parent.RefreshMessages(LastLink, PageCount);
+            Parent.NavigateToPage(LastLink, PageCount);
         }
 
         public ICommand SearchCommand { get; }
@@ -90,27 +90,27 @@
         {
             SearchInProgress = true;
             AddRecentSearchEntry(SearchQuery);
-            Parent.InitSearch(SelectedEndpoint, SearchQuery);
+            Parent.Search(SelectedEndpoint, SearchQuery);
         }
 
         public void CancelSearch()
         {
             SearchQuery = null;
             SearchInProgress = false;
-            Parent.InitSearch(SelectedEndpoint, SearchQuery);
+            Parent.Search(SelectedEndpoint, SearchQuery);
         }
 
-        public void SetupPaging(int currentPage, int totalCount, int pageSize, IList<StoredMessage> messages, string nextLink, string prevLink, string firstLink, string lastLink, string selfLink)
+        public void SetupPaging(PagedResult<StoredMessage> pagedResult, string selfLink)
         {
-            CurrentPage = currentPage;
-            TotalItemCount = totalCount;
-            Result = messages;
-            NextLink = nextLink;
-            PrevLink = prevLink;
-            FirstLink = firstLink;
-            LastLink = lastLink;
+            CurrentPage = pagedResult.TotalCount > 0 ? pagedResult.CurrentPage : 0;
+            TotalItemCount = pagedResult.TotalCount;
+            Result = pagedResult.Result;
+            NextLink = pagedResult.NextLink;
+            PrevLink = pagedResult.PrevLink;
+            FirstLink = pagedResult.FirstLink;
+            LastLink = pagedResult.LastLink;
+            PageSize = pagedResult.PageSize;
             SelfLink = selfLink;
-            PageSize = pageSize;
             NotifyPropertiesChanged();
         }
 
@@ -128,11 +128,11 @@
         {
             if (SelfLink != null)
             {
-                Parent.RefreshMessages(SelfLink, CurrentPage);
+                Parent.NavigateToPage(SelfLink, CurrentPage);
             }
             else
             {
-                Parent.InitSearch(SelectedEndpoint, SearchQuery);
+                Parent.Search(SelectedEndpoint, SearchQuery);
             }
         }
 

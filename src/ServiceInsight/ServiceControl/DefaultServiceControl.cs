@@ -97,29 +97,22 @@
             AppendSystemMessages(request);
             AppendSearchQuery(request, searchQuery);
             AppendOrdering(request, orderBy, ascending);
-            AppendPaging(request, DefaultPageSize);
+            AppendPaging(request);
 
-            var result = GetPagedResult<StoredMessage>(request);
-            if (result != null)
-            {
-                result.CurrentPage = 1;
-            }
-            return result;
+            return GetPagedResult<StoredMessage>(request);
         }
 
         public PagedResult<StoredMessage> GetAuditMessages(string link)
         {
-            if (link.StartsWith("http"))
+            if (link.StartsWith("http", StringComparison.OrdinalIgnoreCase))
             {
                 var request = new RestRequestWithCache("", RestRequestWithCache.CacheStyle.IfNotModified);
-                var result = GetPagedResult<StoredMessage>(request, link);
-                return result;
+                return GetPagedResult<StoredMessage>(request, link);
             }
             else
             {
                 var request = new RestRequestWithCache(link, RestRequestWithCache.CacheStyle.IfNotModified);
-                var result = GetPagedResult<StoredMessage>(request);
-                return result;
+                return GetPagedResult<StoredMessage>(request);
             }
         }
 
@@ -198,9 +191,9 @@
             request.AddParameter("direction", ascending ? "asc" : "desc", ParameterType.GetOrPost);
         }
 
-        void AppendPaging(IRestRequest request, int pageSize)
+        void AppendPaging(IRestRequest request)
         {
-            request.AddParameter("per_page", pageSize, ParameterType.GetOrPost);
+            request.AddParameter("per_page", DefaultPageSize, ParameterType.GetOrPost);
         }
 
         void AppendSearchQuery(IRestRequest request, string searchQuery)
